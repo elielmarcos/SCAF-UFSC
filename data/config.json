@@ -1,6 +1,6 @@
 {
 	"servername": "Ap dos meninos",
 	"password": "capadocia",
-	"websocketip": "192.168.0.104",
+	"websocketip": "192.168.0.100",
 	"websocketport": "5000"
 }

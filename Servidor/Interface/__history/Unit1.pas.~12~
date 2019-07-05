@@ -1,0 +1,88 @@
+unit Unit1;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, FireDAC.Stan.Intf, FireDAC.Stan.Option,
+  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
+  FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Phys.SQLite,
+  FireDAC.Phys.SQLiteDef, FireDAC.Stan.ExprFuncs, FireDAC.VCLUI.Wait,
+  FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt,
+  Vcl.ExtCtrls, Vcl.DBCtrls, Vcl.StdCtrls, Data.DB, Vcl.Mask,
+  FireDAC.Comp.DataSet, FireDAC.Comp.Client, FireDAC.Comp.UI, Vcl.ComCtrls,
+  Vcl.Grids, Vcl.DBGrids;
+
+type
+  TSCAF = class(TForm)
+    FDConnection1: TFDConnection;
+    FDGUIxWaitCursor1: TFDGUIxWaitCursor;
+    FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink;
+    PageControl1: TPageControl;
+    Aluno: TTabSheet;
+    Servidor: TTabSheet;
+    Aula: TTabSheet;
+    ESP: TTabSheet;
+    Relatorio: TTabSheet;
+    FDTable1: TFDTable;
+    FDTable2: TFDTable;
+    FDTable3: TFDTable;
+    FDTable4: TFDTable;
+    DBNavigator1: TDBNavigator;
+    DataSource1: TDataSource;
+    DataSource2: TDataSource;
+    DataSource3: TDataSource;
+    DataSource4: TDataSource;
+    DataSource5: TDataSource;
+    DBGrid1: TDBGrid;
+    DBNavigator2: TDBNavigator;
+    DBGrid2: TDBGrid;
+    DBNavigator3: TDBNavigator;
+    DBGrid3: TDBGrid;
+    DBNavigator4: TDBNavigator;
+    DBGrid4: TDBGrid;
+    DBNavigator5: TDBNavigator;
+    DBGrid5: TDBGrid;
+    FDQuery1: TFDQuery;
+    Button1: TButton;
+    SaveDialog1: TSaveDialog;
+    procedure Button1Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  SCAF: TSCAF;
+
+implementation
+
+{$R *.dfm}
+
+procedure TSCAF.Button1Click(Sender: TObject);
+var
+   ArqTxt : TextFile;
+   Linha1, campo1, campo2, campo3, name : string;
+begin
+
+   name := SaveDialog1.Execute();
+
+   AssignFile(ArqTxt, name);
+   Rewrite(ArqTxt);
+              {
+   Query1.Close;
+   Query1.Open;
+   while not Query1.Eof do begin
+      campo1 := Query1.FieldByName('LAST_NAME').AsString;
+      campo2 := Query1.FieldByName('FIRST_NAME').AsString;
+      campo3 := Query1.FieldByName('SS_NUMBER').AsString;
+      Linha1 := campo1+campo2+campo3;
+      Writeln(ArqTxt, Linha1);
+      Query1.Next;
+   end;
+   CloseFile(ArqTxt);   }
+end;
+
+
+end.

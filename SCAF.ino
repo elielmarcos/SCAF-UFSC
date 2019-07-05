@@ -328,7 +328,7 @@ void loop() {
 
   time_t tt = time(NULL);                                                   // Obtem o tempo atual total em segundos (timestamp)
   data = *gmtime(&tt);                                                      // Converte o tempo atual e atribui na estrutura
-  //USE_SERIAL.printf("Hora: %02d:%02d:%02d - Data: %02d/%02d/%04d\n",  data.tm_hour, data.tm_min, data.tm_sec, data.tm_mday, data.tm_mon+1, data.tm_year+1900);//Mostra na Serial a data formatada
+  // USE_SERIAL.printf("Hora: %02d:%02d:%02d - Data: %02d/%02d/%04d Semana: %01d\n",  data.tm_hour, data.tm_min, data.tm_sec, data.tm_mday, data.tm_mon+1, data.tm_year+1900, data.tm_wday);//Mostra na Serial a data formatada
 
   if (data.tm_hour == 0 && data.tm_min == 0 && data.tm_sec == 0) {          // Atualiza a hora e Banco de Dados com servidor sempre que hora for 00:00:00
     UpdateTime = false;
@@ -737,6 +737,9 @@ void TaskWebSocket( void *parameter ) {
        vTaskDelay(100);
 
       if (WiFi_connected) {
+        WebSocket = WebsocketsClient();
+        WebSocket.onMessage(onMessageCallback);               // Instanciando as mensagens de WebSocket
+        WebSocket.onEvent(onEventsCallback);                  // Instanciando os eventos de WebSocket
         WS_connected = WebSocket.connect(websocketIP, websocketPORT, "/");
          vTaskDelay(100);
          
@@ -793,8 +796,6 @@ void TaskRFID( void *parameter ) {
     key.keyByte[i] = 0xFF;
   }
 
-
-
   for (;;) {
     vTaskDelay(100);
     // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
@@ -829,8 +830,8 @@ void TaskRFID( void *parameter ) {
         nuidPICC[i] = rfid.uid.uidByte[i];
         USE_SERIAL.printf(" %02X", nuidPICC[i]);
         //lcd.printf("%02X ",nuidPICC[i]);
-        New_tag = true;
       }
+	  New_tag = true;
       USE_SERIAL.print("\n");
     }
     //}
@@ -951,7 +952,7 @@ String ClassSchedule(){
 
     JsonObject json = doc.as<JsonObject>();
 
-    if ((json["wd"] == data.tm_wday) && (json["wd"].as<int>() != -1)){
+    if ((json["wd"] == data.tm_wday) && (json["wd"].as<int>() != -1)){   // data.tm_wday = (0 Domingo; 1 Segundo; 2 Terça; 3 Quarta; 4 Quinta; 5 Sexta; 6 Sabado)
 
       timer = (data.tm_hour > 9 ? String(data.tm_hour) : "0" + String(data.tm_hour)) +":"+
               (data.tm_min > 9 ? String(data.tm_min) : "0" + String(data.tm_min)) +":"+

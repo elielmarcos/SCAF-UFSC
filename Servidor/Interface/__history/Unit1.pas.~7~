@@ -1,0 +1,60 @@
+unit Unit1;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, FireDAC.Stan.Intf, FireDAC.Stan.Option,
+  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
+  FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Phys.SQLite,
+  FireDAC.Phys.SQLiteDef, FireDAC.Stan.ExprFuncs, FireDAC.VCLUI.Wait,
+  FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt,
+  Vcl.ExtCtrls, Vcl.DBCtrls, Vcl.StdCtrls, Data.DB, Vcl.Mask,
+  FireDAC.Comp.DataSet, FireDAC.Comp.Client, FireDAC.Comp.UI, Vcl.ComCtrls,
+  Vcl.Grids, Vcl.DBGrids;
+
+type
+  TForm1 = class(TForm)
+    FDConnection1: TFDConnection;
+    FDGUIxWaitCursor1: TFDGUIxWaitCursor;
+    FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink;
+    PageControl1: TPageControl;
+    TabSheet1: TTabSheet;
+    TabSheet2: TTabSheet;
+    Aula: TTabSheet;
+    ESP: TTabSheet;
+    TabSheet4: TTabSheet;
+    FDTable1: TFDTable;
+    FDTable2: TFDTable;
+    FDTable3: TFDTable;
+    FDTable4: TFDTable;
+    FDTable5: TFDTable;
+    DBNavigator1: TDBNavigator;
+    DataSource1: TDataSource;
+    DataSource2: TDataSource;
+    DataSource3: TDataSource;
+    DataSource4: TDataSource;
+    DataSource5: TDataSource;
+    DBGrid1: TDBGrid;
+    DBNavigator2: TDBNavigator;
+    DBGrid2: TDBGrid;
+    DBNavigator3: TDBNavigator;
+    DBGrid3: TDBGrid;
+    DBNavigator4: TDBNavigator;
+    DBGrid4: TDBGrid;
+    DBNavigator5: TDBNavigator;
+    DBGrid5: TDBGrid;
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+end.

@@ -1,0 +1,110 @@
+unit Unit1;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, FireDAC.Stan.Intf, FireDAC.Stan.Option,
+  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
+  FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Phys.SQLite,
+  FireDAC.Phys.SQLiteDef, FireDAC.Stan.ExprFuncs, FireDAC.VCLUI.Wait,
+  FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt,
+  Vcl.ExtCtrls, Vcl.DBCtrls, Vcl.StdCtrls, Data.DB, Vcl.Mask,
+  FireDAC.Comp.DataSet, FireDAC.Comp.Client, FireDAC.Comp.UI, Vcl.ComCtrls,
+  Vcl.Grids, Vcl.DBGrids;
+
+type
+  TSCAF = class(TForm)
+    FDConnection1: TFDConnection;
+    FDGUIxWaitCursor1: TFDGUIxWaitCursor;
+    FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink;
+    PageControl1: TPageControl;
+    Aluno: TTabSheet;
+    Servidor: TTabSheet;
+    Aula: TTabSheet;
+    ESP: TTabSheet;
+    Relatorio: TTabSheet;
+    FDTable1: TFDTable;
+    FDTable2: TFDTable;
+    FDTable3: TFDTable;
+    FDTable4: TFDTable;
+    DBNavigator1: TDBNavigator;
+    DataSource1: TDataSource;
+    DataSource2: TDataSource;
+    DataSource3: TDataSource;
+    DataSource4: TDataSource;
+    DataSource5: TDataSource;
+    DBGrid1: TDBGrid;
+    DBNavigator2: TDBNavigator;
+    DBGrid2: TDBGrid;
+    DBNavigator3: TDBNavigator;
+    DBGrid3: TDBGrid;
+    DBNavigator4: TDBNavigator;
+    DBGrid4: TDBGrid;
+    DBNavigator5: TDBNavigator;
+    DBGrid5: TDBGrid;
+    FDQuery1: TFDQuery;
+    Button1: TButton;
+    SaveDialog1: TSaveDialog;
+    procedure Button1Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  SCAF: TSCAF;
+
+implementation
+
+{$R *.dfm}
+
+procedure TSCAF.Button1Click(Sender: TObject);
+var
+   ArqTxt : TextFile;
+   Linha1, c1, c2, c3, c4, c5, c6 : string;
+begin
+
+   if SaveDialog1.Execute() then
+   begin
+
+       AssignFile(ArqTxt, SaveDialog1.FileName);
+        Rewrite(ArqTxt);
+
+
+       while not FDQuery1.Eof do begin
+          c1 := FDQuery1.FieldByName('tag_id').AsString;
+          c2 := FDQuery1.FieldByName('nome').AsString;
+          c3 := FDQuery1.FieldByName('matricula').AsString;
+          c4 := FDQuery1.FieldByName('esp_id').AsString;
+          c5 := FDQuery1.FieldByName('date').AsString;
+          c6 := FDQuery1.FieldByName('status').AsString;
+          Linha1 := c1+','+c2+','+c3+','+c4+','+c5+','+c6;
+          Writeln(ArqTxt, Linha1);
+          FDQuery1.Next;
+       end;
+       CloseFile(ArqTxt);
+
+   end;
+
+
+end;
+
+
+procedure TSCAF.FormCreate(Sender: TObject);
+begin
+
+  FDConnection1.Params.Database := ExtractFilePath(ParamStr(0)) + 'database.db'; // Seleciona Base de Dados
+  FDConnection1.Open;
+
+  FDTable1.Active := True;
+  FDTable2.Active := True;
+  FDTable3.Active := True;
+  FDTable4.Active := True;
+  FDQuery1.Active := True;
+
+end;
+
+end.

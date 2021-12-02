@@ -6,6 +6,8 @@ var http = require('http');
 var os = require( 'os' );
 var interfaces = os.networkInterfaces();
 
+var sqlite = require('sqlite-sync');
+
 const addresses = Object.keys(interfaces)
   .reduce((results, name) => results.concat(interfaces[name]), [])
   .filter((iface) => iface.family === 'IPv4' && !iface.internal)
@@ -16,11 +18,82 @@ const portWS = 5000;
 
 var websocket;
 var devices = [];
+var auth = []
 var log;
 
-var flag = 0;
+let get_class_time_for_a_week = (`SELECT  
+		  p.Nome as authorized_name
+		  , p.tag_id as authorized_tag
+		  , a.hora_inicio as inicio
+		  , a.hora_fim as fim
+		  , a.nome_materia as materia
+		  , a.week_day	as wd
+		  FROM Servidor  as p
+		  INNER JOIN  Aula  a ON (p.tag_id = a.tag_professor) 
+		  WHERE a.n_sala = 1
+		  UNION
+		  SELECT
+			p.Nome as authorized_name
+			, p.tag_id as authorized_tag
+			, a.hora_inicio as inicio
+			, a.hora_fim as fim
+			, a.nome_materia as materia
+			, a.week_day	as wd
+		  FROM Servidor  as p
+		  INNER JOIN  Aula  a ON (p.Cargo = a.Cargo)`);
+
+let get_esp = (
+	`SELECT * FROM esp`
+);
+
+
+let get_users = (
+	`SELECT * FROM Aluno`
+);
+
+
+function insert_in_to_database(id, tag, time, status){
+	let result = ''	
+	for (let row = 0; row < tag.length; row++){
+		result += convert_to_hex(tag[row]).toString() + ' '
+	}
+	result = result.substring(0, result.length-1);	
+	sqlite.run('INSERT INTO relatorio (esp_id, tag_id, timestamp, status) VALUES (?, ?, ?, ?)', [id, result, time, status],(err) => {console.log(err)});
+};
+	
+
+
+function convert_to_hex(a){
+	let value = (+a).toString(16).toUpperCase()
+	if (value.length < 2 ){
+		value = '0' + value 
+	}
+	return value;
+}	
 
 app.use(express.static('www'));
+
+
+function delay(milliseconds) {
+    var start = new Date().getTime();
+    for (var i = 0; i < 1e7; i++) {
+        if ((new Date().getTime() - start) > milliseconds){
+            break;
+        }
+    }
+}
+
+function connect_db(){
+	console.log('Abrindo Database')
+	try {
+	   sqlite.connect('database.db');
+	   console.log('connectado com sucesso ao banco');
+	}
+	catch (e) {
+	  	console.log('erro conectando ao banco ' + e)
+	}
+}
+connect_db()
 
 // Servidor disponibiliza uma porta para a conexão websocket
 const wss = new WebSocket.Server({port : portWS}, function() {
@@ -29,118 +102,145 @@ const wss = new WebSocket.Server({port : portWS}, function() {
 
 // porta 8080: porta de conexão websocket
 // porta 8000: porta da página requisitada
-
 var server = app.listen(portExpress , function () {
     var port = server.address().port;
     console.log('EXPRESS RODANDO NA PORTA http://%s:%s', addresses, port);
 });
 
-
+delay(5000);
 		
 wss.on('connection', function connection(ws) {
-
-	//ws.id = '';
-	//ws.room = '';
-	//console.log(ws);
 	devices.push(ws);
-
+	
     ws.on('message', function incoming(MSG) {
-		
         MSG = JSON.parse(MSG);
-		
-        if (MSG.type == 'CONNECT') // Novo usuario pedindo para conectar
-        {
-			console.log('Conectar: ');
-
-				devices[devices.length - 1].id = MSG.id;
-				//devices[devices.length - 1].room = MSG.room;
-            
-
-			log = '    ' + devices[devices.length - 1].id + ' conectou.';
-            console.log(log);
-
-			
-			log = '    ==> Conectado(s): ' + devices.length + '\n';
-            console.log(log);
-			
-			 // Responde que foi conectado
-            ws.send(JSON.stringify({type: 'CONNECT', status: 'OK'}));
-			
-			//ws.ping();
-			
-
-        }
-		
-		
-		if (MSG.type == 'ACCESS') // Comando do usuario
-        {
-
-			console.log('Access: ');
-
-			if (MSG.status == 'ONLINE')
-			ws.send(JSON.stringify({type: 'ACCESS', status: 'Eliel Marcos Romancini'}));
-			
-			if (MSG.status == 'OFFLINE')
-				ws.send(JSON.stringify({type: 'ACCESS', status: 'OK'}));
-			
-			log = '    ' + MSG + '\n';
-            console.log(MSG);			
-
-		}
-		
-		if (MSG.type == 'HOUR') // Comando do usuario
-        {
-
-			console.log('Hora: ');
-
-			ws.send(JSON.stringify({type: 'HOUR', status:(parseInt(new Date().getTime()/1000) - 10800)}));
-
-			
-			
-			log = '    ' + MSG.id + ' Hora: ' + MSG.status+'\n';
-            console.log(log);			
-
-		}
-		
-		if (MSG.type == 'UPDATE') // Comando do usuario
-        {
-
-			console.log('Update: ');
-
-			if(MSG.status == 'REFRESH'){
-				ws.send(JSON.stringify({type:'UPDATE', status:{authorized_name:'ELIEL',authorized_tag:'BA 49 29 0C',inicio:'0',fim:'0',materia:'null',wd:-1}, new_line:1}));
+		if (MSG.type == 'CONNECT'){
+			devices[devices.length-1].id = MSG.id;
+			let id = MSG.id;
+			let esp = sqlite.run(get_esp);
+			let flag = 0
+			for (let row = 0; row < esp.length; row++){
+				if (esp[row].id == id){		
+						flag = 1
+						break;
+					}
+				else{ 
+						flag = 0
+					}
+			}	
+			obj = {id:id, auth:flag}
+			auth.push(obj)
+			if (flag){
+				console.log('esp ' + id +' conectado')
+				ws.send(JSON.stringify({type:'CONNECT', status:'OK'}));
 			}
-			
-			if(MSG.status == 'OK' && !flag){
-				ws.send(JSON.stringify({type:'UPDATE', status:{authorized_name:'ELIEL MARCOS',authorized_tag:'C6 FF A1 BB',inicio:'17:01:00',fim:'20:20:00',materia:'(DEC-7000) Sistemas Ubiquos',wd:0}, new_line:0}));
-				flag = 1;
-			} else {flag = 0;}
-			
-			log = '    ' + MSG.id + ' Updade: ' + MSG.status+'\n';
-            console.log(log);			
-
+			else { 
+				ws.send(JSON.stringify({type:'CONNECT', status:'ERRO'}));
+				console.log('esp ' + id +' conexao rejeitada')
+			}		
 		}
 
+		if (MSG.type == 'HOUR'){
+			let id = MSG.id  
+			let flag = 0
+			for (let row = 0; row < auth.length; row++){
+				if (id == auth[row].id && auth[row].auth == 1){
+					flag = 1
+					ws.send(JSON.stringify({type:'HOUR', status:(parseInt(new Date().getTime()/1000) - 10800)}));
+				}
+			}
+			if(!flag){
+				ws.send(JSON.stringify({type:'HOUR', status:'auth error'}));
+			}
+		}  
+
+        if (MSG.type == 'UPDATE') // solicitando acesso a materia na semana
+        {
+			let id = MSG.id;
+			let aulas = sqlite.run(get_class_time_for_a_week);
+			
+			if(MSG.status == 'REFRESH'){
+				console.log('refresh')
+				if (aulas.length == 0) {
+					ws.send(JSON.stringify({type:'UPDATE', status:'null', new_line:0}));
+				}
+				else{
+					for (let row = 0; row < auth.length; row++){
+						if (id == auth[row].id && auth[row].auth == 1){
+							auth[row].line = 0
+							if (aulas.length == 1)
+								ws.send(JSON.stringify({type:'UPDATE', status:aulas[0], new_line:0}));
+							else ws.send(JSON.stringify({type:'UPDATE', status:aulas[0], new_line:1}));
+							break;
+						}
+					}	
+				}
+			}
+
+			if(MSG.status == 'OK'){
+				for (let row = 0; row < auth.length; row++){
+					if (id == auth[row].id && auth[row].auth == 1){
+						auth[row].line++;
+						if (aulas.length-1 > auth[row].line){
+							ws.send(JSON.stringify({type:'UPDATE', status:aulas[auth[row].line], new_line:1}));
+						}
+						else if (aulas.length-1 == auth[row].line) {
+							ws.send(JSON.stringify({type:'UPDATE', status:aulas[auth[row].line], new_line:0}));
+						}						
+					}
+				}
+			}
+		}
+
+		if(MSG.type == 'ACCESS'){	
+			let time = MSG.time;
+			let autorizados = sqlite.run(get_users)
+			let id = MSG.id;
+			let tag = MSG.tag;
+			let status = MSG.status;
+			tag = tag.split(' ')
+			let result = ''
+			console.log(MSG)
+			for (let row = 0; row < tag.length; row++){
+				result += convert_to_hex(tag[row]).toString() + ' '
+			}
+			result = result.substring(0, result.length-1);
+
+			insert_in_to_database(id, tag, time, status)		
+			let flag = 0 
+			
+			if (MSG.status == 'ONLINE'){
+				for (let row = 0; row < autorizados.length; row++){
+					if ((autorizados[row].tag_aluno).toString() == result.toString()){
+						ws.send(JSON.stringify({type:'ACCESS', status:autorizados[row].nome}));
+						flag = 1;
+						break;
+					 }
+				}
+				if (flag == 0)
+					ws.send(JSON.stringify({type:'ACCESS', status:'null'}));
+			}
+			else if (MSG.status == 'OFFLINE'){
+				ws.send(JSON.stringify({type:'ACCESS', status:'OK'}));
+			}
+		}
+	
     });
 
     ws.on('close', function close() { // se alguem desconectar, retire da lista e finaliza o jogo
 
-		console.log('Desconectar: ');
+		console.log('Desconectar');
 		
         var x = devices.indexOf(ws);	// remove usuario que saiu da pagina
             if (x != -1) {
                 devices.splice(x, 1);
-				log = '    ' + ws.id + ' desconectou.';
+				log = ws.id + ' desconectou. Conectados: ' + devices.length;
 				console.log(log);
             }
-		
-		 log = '    ==> Conectado(s): ' + devices.length + '\n';
-		 console.log(log);
 		
     });
 	
 });
-
 
 
 function fazBroadcast(msg) {
@@ -166,90 +266,5 @@ function BroadcastPing() {
 
 
 setInterval(BroadcastPing, 5000);
-
-
-/*
-
-Ap dos meninos
-capadocia
-Connnection Opened
-Coneccao com servidor ACEITA!
-Got Message: {"type":"CONNECT","status":"OK"}
-Got a Ping!
-Conectado.
-WS Conectado
-Hora: 1556743249
-Got Message: {"type":"HOUR","status":1556743249}
-Conectado.
-WS Conectado
-Conectado.
-WS Conectado
-Conectado.
-WS Conectado
-Got Message: {"type":"UPDATE","status":{"authorized_name":"ELIEL","authorized_tag":"BA 49 29 0C","inicio":"16:00:00","fim":"16:20:00","materia":"Servidor","wd":1},"new_line":1}
-Got Message: {"type":"UPDATE","status":{"authorized_name":"ERRIEL","authorized_tag":"B6 16 25 07","inicio":"0","fim":0,"materia":"Servidor"},"new_line":1}
-Got Message: {"type":"UPDATE","status":{"authorized_name":"GABS","authorized_tag":"C6 FF A1 B1","inicio":"0","fim":0,"materia":"Servidor"},"new_line":1}
-Got Message: {"type":"UPDATE","status":{"authorized_name":"VINI","authorized_tag":"F7 F8 CC 7C","inicio":"0","fim":0,"materia":"Servidor"},"new_line":0}
-Conectado.
-WS Conectado
-Conectado.
-WS Conectado
-PICC type: MIFARE 1KB
-A new card has been detected.
- FA 2B 28 0CConectado.
-WS Conectado
-Got Message: {"type":"ACCESS","status":"CAPA"}
-Conectado.
-WS Conectado
-Conectado.
-WS Conectado
-PICC type: MIFARE 1KB
-A new card has been detected.
- F7 F8 CC 7CConectado.
-WS Conectado
-Got a Ping!
-Got Message: {"type":"ACCESS","status":"VINI"}
-Conectado.
-WS Conectado
-Conectado.
-WS Conectado
-PICC type: MIFARE 1KB
-A new card has been detected.
- BA 49 29 0CConectado.
-WS Conectado
-Got Message: {"type":"ACCESS","status":"ELIEL\n"}
-Conectado.
-WS Conectado
-Conectado.
-WS Conectado
-PICC type: MIFARE 1KB
-A new card has been detected.
- B6 16 25 07Conectado.
-WS Conectado
-Got Message: {"type":"ACCESS","status":"ERRIEL"}
-Conectado.
-WS Conectado
-Conectado.
-WS Conectado
-PICC type: MIFARE 1KB
-A new card has been detected.
- C6 FF A1 BBConectado.
-WS Conectado
-Got Message: {"type":"ACCESS","status":"null"}
-Conectado.
-WS Conectado
-Conectado.
-WS Conectado
-PICC type: MIFARE 1KB
-A new card has been detected.
- C6 FF A1 BBConectado.
-WS Conectado
-Got Message: {"type":"ACCESS","status":"null"}
-Conectado.
-WS Conectado
-
-*/
-
-
 
 
